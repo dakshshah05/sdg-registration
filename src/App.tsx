@@ -1,8 +1,10 @@
-import RegistrationForm from '@/components/RegistrationForm';
+'use client';
 
-export default function Home() {
+import RegistrationForm from './components/RegistrationForm';
+
+function App() {
   return (
-    <main className="min-h-screen flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-50 to-yellow-50 relative overflow-hidden">
+    <main className="min-h-screen w-full flex flex-col items-center justify-center p-4 bg-gradient-to-br from-green-50 to-yellow-50 relative overflow-hidden">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 left-0 w-full h-full overflow-hidden -z-10 opacity-30">
             <div className="absolute top-10 left-10 w-64 h-64 bg-sdg-green rounded-full mix-blend-multiply filter blur-3xl animate-blob"></div>
@@ -26,3 +28,5 @@ export default function Home() {
     </main>
   );
 }
+
+export default App;

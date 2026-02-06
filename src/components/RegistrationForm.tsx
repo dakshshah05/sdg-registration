@@ -44,33 +44,18 @@ export default function RegistrationForm() {
     e.preventDefault();
     setLoading(true);
 
-    const formData = new FormData(e.currentTarget);
-
-    try {
-      const res = await fetch('/api/register', {
-        method: 'POST',
-        body: formData,
-      });
-
-      if (res.ok) {
+    // MOCK SUBMISSION (No Backend)
+    setTimeout(() => {
         setSuccess(true);
-        gsap.to(formRef.current, {
-            scale: 0.95,
-            opacity: 0, 
-            duration: 0.5,
-            onComplete: () => {
-                // Animation for success message handled by React conditional rendering
-            }
-        });
-      } else {
-        alert('Registration failed');
-      }
-    } catch (err) {
-      console.error(err);
-      alert('Error submitting form');
-    } finally {
-      setLoading(false);
-    }
+        setLoading(false);
+        if (formRef.current) {
+            gsap.to(formRef.current, {
+                scale: 0.95,
+                opacity: 0, 
+                duration: 0.5,
+            });
+        }
+    }, 1500);
   };
 
   if (success) {
