@@ -215,7 +215,14 @@ export default function RegistrationForm() {
               disabled={loading}
               className="w-full bg-sdg-green text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
             >
-              {loading ? 'Submitting...' : 'Register Now'}
+              {loading ? (
+                <div className="flex items-center justify-center space-x-2">
+                  <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <span>Processing... Do not Refresh</span>
+                </div>
+              ) : (
+                'Register Now'
+              )}
             </button>
           </div>
         </form>
