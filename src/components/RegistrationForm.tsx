@@ -193,7 +193,6 @@ export default function RegistrationForm() {
                   name="photo"
                   type="file"
                   accept="image/jpeg, image/png, image/jpg"
-                  required
                   className="hidden"
                   onChange={handleFileChange}
                 />
