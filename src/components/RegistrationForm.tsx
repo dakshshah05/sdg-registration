@@ -141,7 +141,7 @@ export default function RegistrationForm() {
             <input
               name="name"
               required
-              className="w-full px-4 py-2 border border-black-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              className="w-full px-4 py-2 border border-black-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="Enter your full name"
             />
           </div>
@@ -151,7 +151,7 @@ export default function RegistrationForm() {
             <input
               name="college"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="Enter your college/organization name"
             />
           </div>
@@ -162,7 +162,7 @@ export default function RegistrationForm() {
               name="email"
               type="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="xyz@gmail.com"
             />
           </div>
@@ -173,7 +173,7 @@ export default function RegistrationForm() {
               name="mobile"
               required
               type="tel"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="+918787878787"
             />
           </div>
