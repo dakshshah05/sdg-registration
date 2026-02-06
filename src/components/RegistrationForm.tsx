@@ -141,8 +141,8 @@ export default function RegistrationForm() {
             <input
               name="name"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all"
-              placeholder="John Doe"
+              className="w-full px-4 py-2 border border-black-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              placeholder="Enter your full name"
             />
           </div>
 
@@ -151,8 +151,8 @@ export default function RegistrationForm() {
             <input
               name="college"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all"
-              placeholder="University of Life"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              placeholder="Enter your college/organization name"
             />
           </div>
 
@@ -162,8 +162,8 @@ export default function RegistrationForm() {
               name="email"
               type="email"
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all"
-              placeholder="john@example.com"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              placeholder="xyz@gmail.com"
             />
           </div>
 
@@ -173,15 +173,15 @@ export default function RegistrationForm() {
               name="mobile"
               required
               type="tel"
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all"
-              placeholder="+1234567890"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400"
+              placeholder="+918787878787"
             />
           </div>
 
           <div className="form-item">
             <label className="block text-sm font-medium text-gray-700 mb-1">Upload Photo</label>
             <div className="flex items-center space-x-4">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors border border-gray-300">
+              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors border border-gray-400">
                 <span>{fileData ? 'Change File' : 'Choose File'}</span>
                 <input
                   name="photo"
