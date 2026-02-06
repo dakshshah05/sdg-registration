@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 
@@ -14,6 +14,29 @@ export default function RegistrationForm() {
   const [success, setSuccess] = useState(false);
   const [fileData, setFileData] = useState<{ base64: string, name: string, type: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+
+  // Form State
+  const [formData, setFormData] = useState({
+    name: '',
+    college: '',
+    email: '',
+    mobile: ''
+  });
+
+  const [isFormValid, setIsFormValid] = useState(false);
+
+  // derived state for validation
+  useEffect(() => {
+    const isValid = 
+      formData.name.trim() !== '' &&
+      formData.college.trim() !== '' &&
+      formData.email.trim() !== '' &&
+      formData.mobile.trim() !== '' &&
+      fileData !== null;
+    
+    setIsFormValid(isValid);
+  }, [formData, fileData]);
+
 
   useGSAP(() => {
     gsap.from(formRef.current, {
@@ -33,17 +56,20 @@ export default function RegistrationForm() {
     });
   }, { scope: containerRef });
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onloadend = () => {
         const result = reader.result as string;
-        // Split to get just the base64 part if needed, but App Script usually handles data URLs fine or we strip it there.
-        // For this implementation, let's send the full data URL and handle parsing if needed, 
-        // OR better: split it here to treat it as raw bytes on the server.
-        // Standard approach: Send full Data URL, let server parse.
-
         setFileData({
           base64: result,
           name: file.name,
@@ -53,7 +79,7 @@ export default function RegistrationForm() {
         if (file.type.startsWith('image/')) {
           setPreview(result);
         } else {
-          setPreview(null); // No preview for PDFs
+          setPreview(null);
         }
       };
       reader.readAsDataURL(file);
@@ -70,13 +96,12 @@ export default function RegistrationForm() {
       return;
     }
 
-    const formData = new FormData(e.currentTarget);
     const payload = {
-      token: SECRET_TOKEN, // Add security token
-      name: formData.get('name'),
-      college: formData.get('college'),
-      email: formData.get('email'),
-      mobile: formData.get('mobile'),
+      token: SECRET_TOKEN,
+      name: formData.name,
+      college: formData.college,
+      email: formData.email,
+      mobile: formData.mobile,
       file: fileData?.base64 || '',
       fileName: fileData?.name || '',
       mimeType: fileData?.type || ''
@@ -88,22 +113,19 @@ export default function RegistrationForm() {
     });
 
     try {
-      // Using no-cors because App Script responses are often opaque in browser
-      // If your script returns proper CORS headers, you can remove mode: 'no-cors'
       console.log("Sending request to:", APP_SCRIPT_URL);
 
       const response = await fetch(APP_SCRIPT_URL, {
         method: 'POST',
         body: JSON.stringify(payload),
-        mode: 'no-cors', // Try changing to 'cors' if you want to see response status (requires script to handle OPTIONS)
+        mode: 'no-cors',
         headers: {
-          'Content-Type': 'text/plain', // Use text/plain to avoid preflight OPTIONS request if possible for simple requests, though body is JSON
+          'Content-Type': 'text/plain',
         },
       });
 
       console.log("Response received (opaque if no-cors):", response);
 
-      // Since no-cors doesn't give us response status, we assume success if no network error thrown.
       setSuccess(true);
       if (formRef.current) {
         gsap.to(formRef.current, {
@@ -146,6 +168,8 @@ export default function RegistrationForm() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
             <input
               name="name"
+              value={formData.name}
+              onChange={handleInputChange}
               required
               className="w-full px-4 py-2 border border-black-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="Enter your full name"
@@ -156,6 +180,8 @@ export default function RegistrationForm() {
             <label className="block text-sm font-medium text-gray-700 mb-1">College / Organization</label>
             <input
               name="college"
+              value={formData.college}
+              onChange={handleInputChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="Enter your college/organization name"
@@ -167,6 +193,8 @@ export default function RegistrationForm() {
             <input
               name="email"
               type="email"
+              value={formData.email}
+              onChange={handleInputChange}
               required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="xyz@gmail.com"
@@ -177,8 +205,10 @@ export default function RegistrationForm() {
             <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
             <input
               name="mobile"
-              required
               type="tel"
+              value={formData.mobile}
+              onChange={handleInputChange}
+              required
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
               placeholder="+918787878787"
             />
@@ -212,8 +242,12 @@ export default function RegistrationForm() {
           <div className="form-item pt-4">
             <button
               type="submit"
-              disabled={loading}
-              className="w-full bg-sdg-green text-white font-bold py-3 rounded-xl hover:bg-green-700 transition-colors shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 active:translate-y-0"
+              disabled={loading || !isFormValid}
+              className={`w-full font-bold py-3 rounded-xl shadow-lg transform transition-all 
+                ${loading || !isFormValid 
+                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
+                  : 'bg-sdg-green text-white hover:bg-green-700 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
+                }`}
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
