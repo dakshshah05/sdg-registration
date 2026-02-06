@@ -158,104 +158,106 @@ export default function RegistrationForm() {
   }
 
   return (
-    <div ref={containerRef} className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden">
-      <div className="bg-gradient-to-r from-sdg-green via-sdg-yellow to-sdg-orange p-1 h-2"></div>
+    <div ref={containerRef} className="w-full max-w-md bg-white/80 backdrop-blur-xl rounded-3xl shadow-2xl overflow-hidden border border-white/20 hover:shadow-sdg-green/20 transition-all duration-500">
+      <div className="bg-gradient-to-r from-sdg-green via-sdg-yellow to-sdg-orange p-1 h-2 animate-pulse"></div>
       <div className="p-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-6 text-center">Join the Movement</h1>
+        <h1 className="text-3xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-sdg-green to-sdg-orange mb-8 text-center drop-shadow-sm">Join the Movement</h1>
 
         <form ref={formRef} onSubmit={handleSubmit} className="space-y-6">
-          <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Full Name</label>
+          <div className="form-item group">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Full Name</label>
             <input
               name="name"
               value={formData.name}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-black-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
+              className="w-full px-4 py-3 border-2 border-transparent bg-gray-50 rounded-xl focus:bg-white focus:border-sdg-green focus:ring-4 focus:ring-sdg-green/20 outline-none transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-white hover:shadow-lg text-black placeholder-gray-400"
               placeholder="Enter your full name"
             />
           </div>
 
-          <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">College / Organization</label>
+          <div className="form-item group">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">College / Organization</label>
             <input
               name="college"
               value={formData.college}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
+              className="w-full px-4 py-3 border-2 border-transparent bg-gray-50 rounded-xl focus:bg-white focus:border-sdg-green focus:ring-4 focus:ring-sdg-green/20 outline-none transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-white hover:shadow-lg text-black placeholder-gray-400"
               placeholder="Enter your college/organization name"
             />
           </div>
 
-          <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email Address</label>
+          <div className="form-item group">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Email Address</label>
             <input
               name="email"
               type="email"
               value={formData.email}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
+              className="w-full px-4 py-3 border-2 border-transparent bg-gray-50 rounded-xl focus:bg-white focus:border-sdg-green focus:ring-4 focus:ring-sdg-green/20 outline-none transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-white hover:shadow-lg text-black placeholder-gray-400"
               placeholder="xyz@gmail.com"
             />
           </div>
 
-          <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mobile Number</label>
+          <div className="form-item group">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Mobile Number</label>
             <input
               name="mobile"
               type="tel"
               value={formData.mobile}
               onChange={handleInputChange}
               required
-              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-sdg-green focus:border-transparent outline-none transition-all placeholder-gray-400 text-black"
+              className="w-full px-4 py-3 border-2 border-transparent bg-gray-50 rounded-xl focus:bg-white focus:border-sdg-green focus:ring-4 focus:ring-sdg-green/20 outline-none transition-all duration-300 ease-out hover:scale-[1.02] hover:bg-white hover:shadow-lg text-black placeholder-gray-400"
               placeholder="+918787878787"
             />
           </div>
 
-          <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Your Photo</label>
-            <div className="flex items-center space-x-4">
-              <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors border border-gray-400">
-                <span>{fileData ? 'Change File' : 'Choose File'}</span>
-                <input
-                  name="photo"
-                  type="file"
-                  accept="image/jpeg, image/png, image/jpg"
-                  className="hidden"
-                  onChange={handleFileChange}
-                />
-              </label>
-              {preview ? (
-                <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-sdg-yellow">
-                  <img src={preview} alt="Preview" className="w-full h-full object-cover" />
-                </div>
-              ) : fileData && (
-                <div className="text-sm text-gray-600 truncate max-w-[200px]">
-                  {fileData.name}
-                </div>
-              )}
+          <div className="form-item group">
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Upload Your Photo</label>
+            <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-gray-300 group-hover:border-sdg-green transition-colors duration-300 bg-gray-50 hover:bg-green-50/30 p-4">
+              <div className="flex items-center space-x-4 relative z-10">
+                <label className="cursor-pointer bg-white text-gray-700 px-6 py-2 rounded-lg shadow-md hover:shadow-lg hover:text-sdg-green hover:scale-105 transition-all duration-300 uppercase tracking-wider font-bold text-xs ring-1 ring-gray-100">
+                  <span>{fileData ? 'Change File' : 'Choose File'}</span>
+                  <input
+                    name="photo"
+                    type="file"
+                    accept="image/jpeg, image/png, image/jpg"
+                    className="hidden"
+                    onChange={handleFileChange}
+                  />
+                </label>
+                {preview ? (
+                  <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-sdg-yellow animate-blob">
+                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                  </div>
+                ) : fileData && (
+                  <div className="text-sm font-medium text-gray-600 truncate max-w-[180px] bg-white px-3 py-1 rounded-full shadow-sm">
+                    {fileData.name}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
-          <div className="form-item pt-4">
+          <div className="form-item pt-6">
             <button
               type="submit"
               disabled={loading || !isFormValid}
-              className={`w-full font-bold py-3 rounded-xl shadow-lg transform transition-all 
+              className={`w-full font-extrabold py-4 rounded-xl shadow-xl transform transition-all duration-300 uppercase tracking-widest text-sm
                 ${loading || !isFormValid 
-                  ? 'bg-gray-400 text-gray-200 cursor-not-allowed' 
-                  : 'bg-sdg-green text-white hover:bg-green-700 hover:shadow-xl hover:-translate-y-0.5 active:translate-y-0'
+                  ? 'bg-gray-300 text-gray-500 cursor-not-allowed grayscale' 
+                  : 'bg-gradient-to-r from-sdg-green via-sdg-yellow to-sdg-orange text-white hover:shadow-2xl hover:shadow-sdg-green/40 hover:-translate-y-1 active:translate-y-0 active:scale-95 bg-[length:200%_auto] animate-gradient-x'
                 }`}
             >
               {loading ? (
                 <div className="flex items-center justify-center space-x-2">
                   <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Processing... Do not Refresh</span>
+                  <span>Processing...</span>
                 </div>
               ) : (
-                'Register Now'
+                'Request to Join'
               )}
             </button>
           </div>
