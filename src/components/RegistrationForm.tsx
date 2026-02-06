@@ -64,6 +64,12 @@ export default function RegistrationForm() {
     e.preventDefault();
     setLoading(true);
 
+    if (!fileData) {
+      alert("Please upload your photo before registering.");
+      setLoading(false);
+      return;
+    }
+
     const formData = new FormData(e.currentTarget);
     const payload = {
       token: SECRET_TOKEN, // Add security token
@@ -179,7 +185,7 @@ export default function RegistrationForm() {
           </div>
 
           <div className="form-item">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Photo</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Upload Your Photo</label>
             <div className="flex items-center space-x-4">
               <label className="cursor-pointer bg-gray-100 hover:bg-gray-200 text-gray-700 px-4 py-2 rounded-lg transition-colors border border-gray-400">
                 <span>{fileData ? 'Change File' : 'Choose File'}</span>
