@@ -3,7 +3,7 @@ import { PrismaClient } from '@prisma/client'
 const globalForPrisma = globalThis as unknown as { prisma: PrismaClient }
 
 // Force env var for Prisma Client to find
-process.env.DATABASE_URL = "file:d:/SDG/sdg-registration/prisma/dev.db";
+// process.env.DATABASE_URL = "file:d:/SDG/sdg-registration/prisma/dev.db";
 
 let prismaInstance: PrismaClient;
 
