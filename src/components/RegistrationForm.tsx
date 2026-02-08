@@ -145,25 +145,45 @@ export default function RegistrationForm() {
     }
   };
 
+  // Confetti opacity state
+  const [confettiOpacity, setConfettiOpacity] = useState(1);
+
+  useEffect(() => {
+    if (success) {
+      // Start fading out after 6 seconds
+      const timer = setTimeout(() => {
+        setConfettiOpacity(0);
+      }, 6000);
+      return () => clearTimeout(timer);
+    }
+  }, [success]);
+
   if (success) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in relative">
-        <Confetti
-          width={width}
-          height={height}
-          recycle={true}
-          numberOfPieces={500}
-          gravity={0.15}
-        />
-        <h2 className="text-4xl font-bold text-sdg-green mb-4 z-10">Registration Successful!</h2>
-        <p className="text-xl text-gray-700">Thank you for joining the SDG initiative.</p>
-        <button
-          onClick={() => window.location.reload()}
-          className="mt-8 px-6 py-2 bg-sdg-yellow text-white rounded-full hover:bg-sdg-orange transition-colors"
+      <>
+        <div 
+          className="fixed inset-0 z-[100] pointer-events-none transition-opacity duration-1000 ease-out"
+          style={{ opacity: confettiOpacity }}
         >
-          Register Another
-        </button>
-      </div>
+          <Confetti
+            width={width}
+            height={height}
+            recycle={true}
+            numberOfPieces={500}
+            gravity={0.15}
+          />
+        </div>
+        <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in relative z-10">
+          <h2 className="text-4xl font-bold text-sdg-green mb-4">Registration Successful!</h2>
+          <p className="text-xl text-gray-700">Thank you for joining the SDG initiative.</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="mt-8 px-6 py-2 bg-sdg-yellow text-white rounded-full hover:bg-sdg-orange transition-colors"
+          >
+            Register Another
+          </button>
+        </div>
+      </>
     );
   }
 
