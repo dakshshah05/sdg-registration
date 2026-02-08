@@ -3,6 +3,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
+import Confetti from 'react-confetti';
+import { useWindowSize } from 'react-use';
 
 const APP_SCRIPT_URL = import.meta.env.VITE_APP_SCRIPT_URL;
 const SECRET_TOKEN = 'SDG_SECURE_TOKEN_2025';
@@ -14,6 +16,7 @@ export default function RegistrationForm() {
   const [success, setSuccess] = useState(false);
   const [fileData, setFileData] = useState<{ base64: string, name: string, type: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const { width, height } = useWindowSize();
 
   // Form State
   const [formData, setFormData] = useState({
@@ -144,8 +147,15 @@ export default function RegistrationForm() {
 
   if (success) {
     return (
-      <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in">
-        <h2 className="text-4xl font-bold text-sdg-green mb-4">Registration Successful!</h2>
+      <div className="flex flex-col items-center justify-center h-full text-center p-8 animate-fade-in relative">
+        <Confetti
+          width={width}
+          height={height}
+          recycle={true}
+          numberOfPieces={500}
+          gravity={0.15}
+        />
+        <h2 className="text-4xl font-bold text-sdg-green mb-4 z-10">Registration Successful!</h2>
         <p className="text-xl text-gray-700">Thank you for joining the SDG initiative.</p>
         <button
           onClick={() => window.location.reload()}
