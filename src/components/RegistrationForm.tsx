@@ -16,6 +16,10 @@ export default function RegistrationForm() {
   const [success, setSuccess] = useState(false);
   const [fileData, setFileData] = useState<{ base64: string, name: string, type: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
+  const [isCameraMode, setIsCameraMode] = useState(false);
+  const [cameraStream, setCameraStream] = useState<MediaStream | null>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const canvasRef = useRef<HTMLCanvasElement>(null);
   const { width, height } = useWindowSize();
 
   // Form State
@@ -86,6 +90,51 @@ export default function RegistrationForm() {
         }
       };
       reader.readAsDataURL(file);
+    }
+  };
+
+  const startCamera = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
+      setCameraStream(stream);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      setIsCameraMode(true);
+    } catch (err) {
+      console.error("Error accessing camera:", err);
+      alert("Could not access camera. Please check permissions.");
+    }
+  };
+
+  const stopCamera = () => {
+    if (cameraStream) {
+      cameraStream.getTracks().forEach(track => track.stop());
+      setCameraStream(null);
+    }
+    setIsCameraMode(false);
+  };
+
+  const handleCapture = () => {
+    if (videoRef.current && canvasRef.current) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const context = canvas.getContext('2d');
+      
+      if (context) {
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        context.drawImage(video, 0, 0, canvas.width, canvas.height);
+        
+        const base64 = canvas.toDataURL('image/jpeg');
+        setFileData({
+          base64: base64,
+          name: `captured-photo-${Date.now()}.jpg`,
+          type: 'image/jpeg'
+        });
+        setPreview(base64);
+        stopCamera();
+      }
     }
   };
 
@@ -245,29 +294,90 @@ export default function RegistrationForm() {
           </div>
 
           <div className="form-item group">
-            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Upload Your Photo</label>
-            <div className="relative overflow-hidden rounded-xl border-2 border-dashed border-gray-300 group-hover:border-sdg-green transition-colors duration-300 bg-gray-50 hover:bg-green-50/30 p-4">
-              <div className="flex items-center space-x-4 relative z-10">
-                <label className="cursor-pointer bg-white text-gray-700 px-6 py-2 rounded-lg shadow-md hover:shadow-lg hover:text-sdg-green hover:scale-105 transition-all duration-300 uppercase tracking-wider font-bold text-xs ring-1 ring-gray-100">
-                  <span>{fileData ? 'Change File' : 'Choose File'}</span>
-                  <input
-                    name="photo"
-                    type="file"
-                    accept="image/jpeg, image/png, image/jpg"
-                    className="hidden"
-                    onChange={handleFileChange}
-                  />
-                </label>
-                {preview ? (
-                  <div className="w-14 h-14 rounded-full overflow-hidden border-4 border-white shadow-lg ring-2 ring-sdg-yellow animate-blob">
-                    <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+            <label className="block text-sm font-semibold text-gray-700 mb-2 group-hover:text-sdg-green transition-colors">Your Photo</label>
+            
+            <div className="relative overflow-hidden rounded-2xl border-2 border-dashed border-gray-300 group-hover:border-sdg-green transition-all duration-300 bg-gray-50/50 p-4">
+              {isCameraMode ? (
+                <div className="space-y-4">
+                  <div className="relative rounded-xl overflow-hidden bg-black aspect-video shadow-inner">
+                    <video 
+                      ref={videoRef} 
+                      autoPlay 
+                      playsInline 
+                      className="w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 ring-1 ring-inset ring-white/20"></div>
                   </div>
-                ) : fileData && (
-                  <div className="text-sm font-medium text-gray-600 truncate max-w-[180px] bg-white px-3 py-1 rounded-full shadow-sm">
-                    {fileData.name}
+                  <canvas ref={canvasRef} className="hidden" />
+                  <div className="flex space-x-3">
+                    <button
+                      type="button"
+                      onClick={handleCapture}
+                      className="flex-1 bg-sdg-green text-white py-3 rounded-xl font-bold hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-200"
+                    >
+                      Capture Photo
+                    </button>
+                    <button
+                      type="button"
+                      onClick={stopCamera}
+                      className="px-6 bg-white border-2 border-gray-200 text-gray-600 py-3 rounded-xl font-bold hover:bg-gray-50 transition-all"
+                    >
+                      Cancel
+                    </button>
                   </div>
-                )}
-              </div>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {preview ? (
+                    <div className="flex items-center space-x-6 p-2">
+                      <div className="relative group/preview">
+                        <div className="w-24 h-24 rounded-2xl overflow-hidden border-4 border-white shadow-2xl ring-2 ring-sdg-yellow transition-transform duration-500 group-hover/preview:scale-110">
+                          <img src={preview} alt="Preview" className="w-full h-full object-cover" />
+                        </div>
+                        <div className="absolute -top-2 -right-2 w-6 h-6 bg-sdg-green text-white rounded-full flex items-center justify-center text-xs shadow-lg">✓</div>
+                      </div>
+                      <div className="flex-1 space-y-2">
+                        <button
+                          type="button"
+                          onClick={() => { setPreview(null); setFileData(null); }}
+                          className="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-wider block"
+                        >
+                          Remove Photo
+                        </button>
+                        <p className="text-sm font-medium text-gray-500 truncate max-w-[150px]">
+                          {fileData?.name}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col space-y-3">
+                      <div className="grid grid-cols-2 gap-3">
+                        <label className="cursor-pointer bg-white border-2 border-gray-100 text-gray-700 p-4 rounded-2xl shadow-sm hover:shadow-xl hover:border-sdg-green hover:text-sdg-green transition-all duration-300 text-center group/btn">
+                          <div className="text-2xl mb-1 group-hover/btn:scale-125 transition-transform">📁</div>
+                          <span className="block text-[10px] font-black uppercase tracking-widest">Upload File</span>
+                          <input
+                            name="photo"
+                            type="file"
+                            accept="image/jpeg, image/png, image/jpg"
+                            className="hidden"
+                            onChange={handleFileChange}
+                          />
+                        </label>
+                        
+                        <button
+                          type="button"
+                          onClick={startCamera}
+                          className="bg-white border-2 border-gray-100 text-gray-700 p-4 rounded-2xl shadow-sm hover:shadow-xl hover:border-sdg-orange hover:text-sdg-orange transition-all duration-300 text-center group/btn"
+                        >
+                          <div className="text-2xl mb-1 group-hover/btn:scale-125 transition-transform">📸</div>
+                          <span className="block text-[10px] font-black uppercase tracking-widest">Take Photo</span>
+                        </button>
+                      </div>
+                      <p className="text-[10px] text-center text-gray-400 font-medium uppercase tracking-tighter italic">Recommended: Clear face photo for ID card</p>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
