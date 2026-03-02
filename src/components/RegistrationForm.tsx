@@ -97,15 +97,18 @@ export default function RegistrationForm() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
       setCameraStream(stream);
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-      }
       setIsCameraMode(true);
     } catch (err) {
       console.error("Error accessing camera:", err);
       alert("Could not access camera. Please check permissions.");
     }
   };
+
+  useEffect(() => {
+    if (isCameraMode && cameraStream && videoRef.current) {
+      videoRef.current.srcObject = cameraStream;
+    }
+  }, [isCameraMode, cameraStream]);
 
   const stopCamera = () => {
     if (cameraStream) {
