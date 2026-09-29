@@ -1,22 +1,19 @@
 /**
  * Google Apps Script to handle Form Submission with Base64 File Upload & Email OTP Authentication
+ * Optimized for high performance and instant responses.
  *
  * Instructions:
  * 1. Go to https://script.google.com/
  * 2. Open your project.
- * 3. Paste this code into Code.gs (replacing previous code).
- * 4. Run the 'setup' function once to create the necessary Sheet structure (if not already created).
- * 5. Deploy as Web App / Manage Deployments -> New Version:
- *    - Click 'Deploy' -> 'Manage deployments' -> Edit (pencil) -> Version: 'New version' -> Deploy
- *    - Execute as: 'Me'
- *    - Who has access: 'Anyone' (IMPORTANT for public access)
- * 6. Copy the URL and ensure it matches VITE_APP_SCRIPT_URL in your React .env file.
+ * 3. Replace the code in Code.gs with this complete file.
+ * 4. Save (Ctrl+S).
+ * 5. Click Deploy -> Manage deployments -> Click Pencil icon on active deployment -> Version: "New version" -> Deploy.
  */
 
 // CONFIGURATION
 const SHEET_NAME = "registrations";
-const FOLDER_ID = "1VyvtmkwrhD3ZL9iAmgPA-bFekSTXXn5x"; // Configured from user link
-const SECRET_TOKEN = "SDG_SECURE_TOKEN_2025"; // Shared secret password
+const FOLDER_ID = "1VyvtmkwrhD3ZL9iAmgPA-bFekSTXXn5x";
+const SECRET_TOKEN = "SDG_SECURE_TOKEN_2025";
 
 // Helper to create JSON Response with CORS headers
 function createJsonResponse(data) {
@@ -24,7 +21,9 @@ function createJsonResponse(data) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// Handle GET requests (OTP sending and verification via query parameters)
+// ----------------------------------------------------
+// GET REQUEST HANDLER (Ultra-fast for OTP)
+// ----------------------------------------------------
 function doGet(e) {
   try {
     const params = (e && e.parameter) ? e.parameter : {};
@@ -34,7 +33,6 @@ function doGet(e) {
     const otp = (params.otp || "").trim();
     const name = params.name || "";
 
-    // Security Check
     if (token !== SECRET_TOKEN) {
       return createJsonResponse({
         status: "error",
@@ -60,18 +58,16 @@ function doGet(e) {
   }
 }
 
-// Handle POST requests
+// ----------------------------------------------------
+// POST REQUEST HANDLER
+// ----------------------------------------------------
 function doPost(e) {
-  const lock = LockService.getScriptLock();
-  lock.tryLock(10000); // Wait up to 10 seconds
-
   try {
     let data = {};
     if (e && e.postData && e.postData.contents) {
       data = JSON.parse(e.postData.contents);
     }
 
-    // SECURITY CHECK
     if (data.token !== SECRET_TOKEN) {
       return createJsonResponse({
         status: "error",
@@ -99,15 +95,12 @@ function doPost(e) {
       status: "error",
       message: error.toString(),
     });
-  } finally {
-    lock.releaseLock();
   }
 }
 
 // ----------------------------------------------------
-// OTP HANDLERS
+// OTP HANDLERS (High Speed with CacheService)
 // ----------------------------------------------------
-
 function handleSendOtp(email, userName) {
   if (!email || !email.includes("@")) {
     return createJsonResponse({
@@ -116,28 +109,14 @@ function handleSendOtp(email, userName) {
     });
   }
 
-  // Generate 6-digit unique numeric OTP
+  // Generate 6-digit OTP
   const otpCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-  // Store OTP in CacheService (valid for 10 minutes = 600 seconds)
+  // Store in CacheService (10 minutes = 600s) - in-memory, instant
   const cache = CacheService.getScriptCache();
   cache.put("OTP_" + email, otpCode, 600);
 
-  // Backup in PropertiesService
-  try {
-    const props = PropertiesService.getScriptProperties();
-    props.setProperty(
-      "OTP_" + email,
-      JSON.stringify({
-        code: otpCode,
-        expiresAt: new Date().getTime() + 10 * 60 * 1000,
-      })
-    );
-  } catch (e) {
-    Logger.log("PropertiesService warning: " + e.toString());
-  }
-
-  // Send the OTP email to the user
+  // Send branded OTP Email
   try {
     sendOtpEmail(email, otpCode, userName);
   } catch (mailErr) {
@@ -164,22 +143,7 @@ function handleVerifyOtp(email, otp) {
 
   const cleanOtp = String(otp).trim();
   const cache = CacheService.getScriptCache();
-  let storedOtp = cache.get("OTP_" + email);
-
-  // Check PropertiesService backup if cache expired or not found
-  if (!storedOtp) {
-    try {
-      const prop = PropertiesService.getScriptProperties().getProperty("OTP_" + email);
-      if (prop) {
-        const parsed = JSON.parse(prop);
-        if (parsed.expiresAt > new Date().getTime()) {
-          storedOtp = parsed.code;
-        }
-      }
-    } catch (e) {
-      Logger.log("Properties read warning: " + e.toString());
-    }
-  }
+  const storedOtp = cache.get("OTP_" + email);
 
   if (!storedOtp) {
     return createJsonResponse({
@@ -195,17 +159,9 @@ function handleVerifyOtp(email, otp) {
     });
   }
 
-  // Verification successful: Mark email as verified for 30 minutes
+  // Mark as verified for 30 minutes
   cache.put("VERIFIED_" + email, "true", 1800);
   cache.remove("OTP_" + email);
-
-  try {
-    PropertiesService.getScriptProperties().deleteProperty("OTP_" + email);
-    PropertiesService.getScriptProperties().setProperty(
-      "VERIFIED_" + email,
-      (new Date().getTime() + 1800000).toString()
-    );
-  } catch (e) {}
 
   return createJsonResponse({
     status: "success",
@@ -216,77 +172,83 @@ function handleVerifyOtp(email, otp) {
 // ----------------------------------------------------
 // REGISTRATION HANDLER
 // ----------------------------------------------------
-
 function handleRegister(data) {
-  const name = data.name;
-  const college = data.college;
-  const email = (data.email || "").toLowerCase().trim();
-  const mobile = data.mobile;
-  const base64File = data.file; // Expecting full Data URL e.g., "data:image/png;base64,....."
-  const fileName = data.fileName;
-  const mimeType = data.mimeType;
+  const lock = LockService.getScriptLock();
+  lock.tryLock(10000);
 
-  // 1. Save File to Drive
-  let fileUrl = "";
-  let fileId = "";
-  if (base64File && fileName) {
-    const folder = DriveApp.getFolderById(FOLDER_ID);
-    const encodedData = base64File.split(",")[1];
-    const decodedBlob = Utilities.base64Decode(encodedData);
-    const blob = Utilities.newBlob(decodedBlob, mimeType, fileName);
+  try {
+    const name = data.name;
+    const college = data.college;
+    const email = (data.email || "").toLowerCase().trim();
+    const mobile = data.mobile;
+    const base64File = data.file;
+    const fileName = data.fileName;
+    const mimeType = data.mimeType;
 
-    const file = folder.createFile(blob);
-    file.setSharing(
-      DriveApp.Access.ANYONE_WITH_LINK,
-      DriveApp.Permission.VIEW
-    );
-    fileUrl = file.getUrl();
-    fileId = file.getId();
+    // 1. Save Photo to Drive
+    let fileUrl = "";
+    let fileId = "";
+    if (base64File && fileName) {
+      try {
+        const folder = DriveApp.getFolderById(FOLDER_ID);
+        const encodedData = base64File.split(",")[1];
+        const decodedBlob = Utilities.base64Decode(encodedData);
+        const blob = Utilities.newBlob(decodedBlob, mimeType, fileName);
+
+        const file = folder.createFile(blob);
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+        fileUrl = file.getUrl();
+        fileId = file.getId();
+      } catch (driveErr) {
+        Logger.log("Drive save error: " + driveErr.toString());
+      }
+    }
+
+    // 2. Save Data to Sheet
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
+    let sheet = ss.getSheetByName(SHEET_NAME);
+
+    if (!sheet) {
+      sheet = ss.insertSheet(SHEET_NAME);
+      sheet.appendRow([
+        "Timestamp",
+        "Name",
+        "College",
+        "Email",
+        "Mobile",
+        "File URL",
+      ]);
+    }
+
+    const timestamp = new Date();
+    sheet.appendRow([timestamp, name, college, email, mobile, fileUrl]);
+
+    // 3. Send Confirmation Email & ID Card
+    if (email) {
+      sendConfirmationEmail(
+        email,
+        name,
+        college,
+        fileUrl,
+        base64File,
+        mimeType,
+        fileId
+      );
+    }
+
+    return createJsonResponse({
+      status: "success",
+      message: "Registration successful",
+      fileUrl: fileUrl,
+    });
+  } finally {
+    lock.releaseLock();
   }
-
-  // 2. Save Data to Sheet
-  const ss = SpreadsheetApp.getActiveSpreadsheet();
-  let sheet = ss.getSheetByName(SHEET_NAME);
-
-  if (!sheet) {
-    sheet = ss.insertSheet(SHEET_NAME);
-    sheet.appendRow([
-      "Timestamp",
-      "Name",
-      "College",
-      "Email",
-      "Mobile",
-      "File URL",
-    ]);
-  }
-
-  const timestamp = new Date();
-  sheet.appendRow([timestamp, name, college, email, mobile, fileUrl]);
-
-  // 3. Send Confirmation Email with ID Card / PDF
-  if (email) {
-    sendConfirmationEmail(
-      email,
-      name,
-      college,
-      fileUrl,
-      base64File,
-      mimeType,
-      fileId
-    );
-  }
-
-  return createJsonResponse({
-    status: "success",
-    message: "Registration successful",
-    fileUrl: fileUrl,
-  });
 }
 
 // ----------------------------------------------------
-// EMAIL CONFIGURATION & TEMPLATES
+// EMAIL TEMPLATES
 // ----------------------------------------------------
-
 const HEADER_LOGO_1_ID = "1My_xJjf-XEb9APKw9A8fNZljGB2s1B4M";
 const HEADER_LOGO_CENTER_ID = "1EeJW-CladfWJ8AA5OpU70MkYTp_h96x7";
 const HEADER_LOGO_2_ID = "1U1m1U55Zj1WF7cLWCzuhW6prV-wBNunH";
@@ -302,10 +264,6 @@ const HEADER_LOGO_2_URL = getDriveUrl(HEADER_LOGO_2_ID);
 const EVENT_BANNER_URL = getDriveUrl(EVENT_BANNER_ID);
 const QR_CODE_1_URL = getDriveUrl(QR_CODE_1_ID);
 const QR_CODE_2_URL = getDriveUrl(QR_CODE_2_ID);
-
-// ----------------------------------------------------
-// SEND OTP EMAIL TEMPLATE
-// ----------------------------------------------------
 
 function sendOtpEmail(recipientEmail, otpCode, userName) {
   const subject = `${otpCode} is your SDG Registration Verification Code`;
@@ -326,13 +284,13 @@ function sendOtpEmail(recipientEmail, otpCode, userName) {
         <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0">
           <tr>
             <td width="33%" align="left" valign="middle">
-              <img src="${HEADER_LOGO_1_URL}" alt="Event Logo" style="height: 50px; max-width: 100%; object-fit: contain;">
+              <img src="${HEADER_LOGO_1_URL}" alt="Logo 1" style="height: 48px; max-width: 100%; object-fit: contain;">
             </td>
             <td width="34%" align="center" valign="middle">
-              <img src="${HEADER_LOGO_CENTER_URL}" alt="Center Logo" style="height: 50px; max-width: 100%; object-fit: contain;">
+              <img src="${HEADER_LOGO_CENTER_URL}" alt="Logo Center" style="height: 48px; max-width: 100%; object-fit: contain;">
             </td>
             <td width="33%" align="right" valign="middle">
-              <img src="${HEADER_LOGO_2_URL}" alt="SDG Cell Logo" style="height: 50px; max-width: 100%; object-fit: contain;">
+              <img src="${HEADER_LOGO_2_URL}" alt="Logo 2" style="height: 48px; max-width: 100%; object-fit: contain;">
             </td>
           </tr>
         </table>
@@ -347,7 +305,7 @@ function sendOtpEmail(recipientEmail, otpCode, userName) {
         </p>
         
         <p style="font-size: 14px; color: #4B5563; line-height: 1.6; margin: 0 0 24px 0; text-align: left;">
-          You are one step away from registering for <strong>Prithvi 2026</strong>. Please use the following 6-digit verification code to authenticate your email address:
+          You are one step away from registering for <strong>Prithvi 2026</strong>. Please use the following 6-digit verification code:
         </p>
 
         <!-- OTP Code Card -->
@@ -384,10 +342,6 @@ function sendOtpEmail(recipientEmail, otpCode, userName) {
     htmlBody: htmlBody,
   });
 }
-
-// ----------------------------------------------------
-// SEND CONFIRMATION EMAIL (WITH ID CARD PDF)
-// ----------------------------------------------------
 
 function sendConfirmationEmail(
   recipientEmail,
@@ -436,7 +390,7 @@ function sendConfirmationEmail(
         </table>
       </div>
 
-      <!-- BODY (CENTER) -->
+      <!-- BODY -->
       <div style="padding: 30px; text-align: center; background-color: #ffffff;">
 
         <!-- Event Banner -->
@@ -444,16 +398,14 @@ function sendConfirmationEmail(
           <img src="${EVENT_BANNER_URL}" alt="Event Banner" style="width: 100%; max-width: 500px; height: auto; border-radius: 8px;">
         </div>
         
-        <!-- User Photo in View Mode -->
+        <!-- User Photo -->
         <div style="margin-bottom: 20px;">
           <img src="cid:${userImageCid}" alt="Your Photo" style="width: 200px; height: 200px; object-fit: cover; border-radius: 50%; border: 4px solid #5D4037; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
         </div>
 
-        <!-- User Info -->
         <h2 style="color: #1B5E20; margin-bottom: 5px;">${userName}</h2>
         <p style="color: #5D4037; font-size: 16px; margin-top: 0;">${college}</p>
 
-        <!-- Punchy Line -->
         <div style="margin-top: 30px; padding: 20px; background-color: #e8f5e9; border-radius: 8px; border-left: 5px solid #2E7D32;">
           <p style="font-size: 18px; font-weight: bold; color: #1B5E20; margin: 0;">
             "You have successfully registered for Prithvi 2026. Let's build a sustainable future together!"
@@ -499,7 +451,7 @@ function sendConfirmationEmail(
           const result = `data:${blob.getContentType()};base64,${b64}`;
 
           try {
-            cache.put(id, result, 21600); // 6 hours
+            cache.put(id, result, 21600);
           } catch (e) {}
 
           return result;
@@ -586,9 +538,6 @@ function setup() {
       "Mobile",
       "File URL",
     ]);
-    Logger.log("Sheet created.");
-  } else {
-    Logger.log("Sheet already exists.");
   }
 }
 

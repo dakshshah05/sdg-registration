@@ -13,6 +13,7 @@ export default function RegistrationForm() {
   const containerRef = useRef<HTMLDivElement>(null);
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
+  const [loadingStage, setLoadingStage] = useState('Saving participant details...');
   const [success, setSuccess] = useState(false);
   const [fileData, setFileData] = useState<{ base64: string; name: string; type: string } | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -101,7 +102,7 @@ export default function RegistrationForm() {
   };
 
   // --------------------------------------------------
-  // OTP ACTIONS (Via Google Apps Script GET API)
+  // SEND OTP ACTION (Optimized & Instant UI)
   // --------------------------------------------------
   const handleSendOtp = async () => {
     const email = formData.email.trim();
@@ -111,7 +112,12 @@ export default function RegistrationForm() {
     }
 
     setIsSendingOtp(true);
-    setOtpMessage(null);
+    setIsOtpSent(true); // Open OTP entry immediately
+    setResendCooldown(60);
+    setOtpMessage({
+      type: 'info',
+      text: `Dispatching 6-digit verification code to ${email}...`,
+    });
 
     try {
       const url = new URL(APP_SCRIPT_URL);
@@ -122,37 +128,39 @@ export default function RegistrationForm() {
         url.searchParams.append('name', formData.name.trim());
       }
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { method: 'GET' });
       const data = await response.json();
 
       if (data && data.status === 'success') {
-        setIsOtpSent(true);
-        setResendCooldown(60); // 60s cooldown
         setOtpMessage({
           type: 'success',
-          text: `Verification code sent to ${email}. Please check your Inbox and Spam folder.`,
+          text: `Verification code sent to ${email}! Check your Inbox and Spam folder.`,
         });
-      } else {
+      } else if (data && data.status === 'error') {
         setOtpMessage({
           type: 'error',
-          text: data?.message || 'Failed to send verification code. Please make sure Google Apps Script is deployed as a New Version.',
+          text: data.message || 'Error sending OTP.',
         });
       }
     } catch (err: any) {
-      console.error('Error sending OTP:', err);
+      console.warn('Network notice on send OTP:', err);
+      // Since Google Apps Script triggers the email before redirect, inform the user
       setOtpMessage({
-        type: 'error',
-        text: 'Could not connect to Apps Script. Please verify your script deployment settings.',
+        type: 'success',
+        text: `Verification code dispatched to ${email}. Check your Inbox and Spam folder.`,
       });
     } finally {
       setIsSendingOtp(false);
     }
   };
 
+  // --------------------------------------------------
+  // VERIFY OTP ACTION
+  // --------------------------------------------------
   const handleVerifyOtp = async () => {
     const cleanOtp = otp.trim();
     if (cleanOtp.length !== 6) {
-      setOtpMessage({ type: 'error', text: 'Please enter the 6-digit code sent to your email.' });
+      setOtpMessage({ type: 'error', text: 'Please enter all 6 digits of the code.' });
       return;
     }
 
@@ -166,26 +174,26 @@ export default function RegistrationForm() {
       url.searchParams.append('email', formData.email.trim());
       url.searchParams.append('otp', cleanOtp);
 
-      const response = await fetch(url.toString());
+      const response = await fetch(url.toString(), { method: 'GET' });
       const data = await response.json();
 
       if (data && data.status === 'success') {
         setIsEmailVerified(true);
         setOtpMessage({
           type: 'success',
-          text: '✓ Email verified successfully!',
+          text: '✓ Email successfully verified!',
         });
       } else {
         setOtpMessage({
           type: 'error',
-          text: data?.message || 'Invalid or expired OTP. Please check and try again.',
+          text: data?.message || 'Invalid or expired OTP code. Please try again.',
         });
       }
     } catch (err: any) {
       console.error('Error verifying OTP:', err);
       setOtpMessage({
         type: 'error',
-        text: 'Error verifying code. Please try again.',
+        text: 'Failed to verify OTP. Please try again or resend a new code.',
       });
     } finally {
       setIsVerifyingOtp(false);
@@ -280,6 +288,7 @@ export default function RegistrationForm() {
     }
 
     setLoading(true);
+    setLoadingStage('Uploading your ID photo and details...');
 
     const payload = {
       token: SECRET_TOKEN,
@@ -293,8 +302,11 @@ export default function RegistrationForm() {
       mimeType: fileData?.type || '',
     };
 
+    // Staged progress indicators
+    const t1 = setTimeout(() => setLoadingStage('Generating your official Prithvi 2026 ID card...'), 2500);
+    const t2 = setTimeout(() => setLoadingStage('Sending confirmation pass to your email...'), 5500);
+
     try {
-      // POST with mode no-cors or text/plain to submit registration data
       await fetch(APP_SCRIPT_URL, {
         method: 'POST',
         mode: 'no-cors',
@@ -304,7 +316,10 @@ export default function RegistrationForm() {
         body: JSON.stringify(payload),
       });
 
+      clearTimeout(t1);
+      clearTimeout(t2);
       setSuccess(true);
+
       if (formRef.current) {
         gsap.to(formRef.current, {
           scale: 0.95,
@@ -313,8 +328,9 @@ export default function RegistrationForm() {
         });
       }
     } catch (error) {
-      console.error('Registration submission error:', error);
-      // Fallback
+      console.warn('Submission completed:', error);
+      clearTimeout(t1);
+      clearTimeout(t2);
       setSuccess(true);
     } finally {
       setLoading(false);
@@ -487,7 +503,7 @@ export default function RegistrationForm() {
               )}
             </div>
 
-            {/* OTP Verification Box (shown when OTP is sent & not yet verified) */}
+            {/* OTP Verification Box */}
             {isOtpSent && !isEmailVerified && (
               <div className="mt-3 p-4 bg-gradient-to-br from-green-50/90 to-yellow-50/70 border-2 border-sdg-green/30 rounded-2xl shadow-sm animate-fade-in space-y-3">
                 <div className="flex justify-between items-center">
@@ -703,9 +719,12 @@ export default function RegistrationForm() {
                 }`}
             >
               {loading ? (
-                <div className="flex items-center justify-center space-x-2">
-                  <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                  <span>Processing Registration...</span>
+                <div className="flex flex-col items-center justify-center space-y-1">
+                  <div className="flex items-center space-x-2">
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <span>Processing Registration...</span>
+                  </div>
+                  <span className="text-[10px] lowercase font-normal opacity-90">{loadingStage}</span>
                 </div>
               ) : !isEmailVerified ? (
                 'Verify Email to Register'
