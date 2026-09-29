@@ -102,7 +102,7 @@ export default function RegistrationForm() {
   };
 
   // --------------------------------------------------
-  // SEND OTP ACTION (Optimized & Instant UI)
+  // SEND OTP ACTION
   // --------------------------------------------------
   const handleSendOtp = async () => {
     const email = formData.email.trim();
@@ -112,11 +112,11 @@ export default function RegistrationForm() {
     }
 
     setIsSendingOtp(true);
-    setIsOtpSent(true); // Open OTP entry immediately
+    setIsOtpSent(true);
     setResendCooldown(60);
     setOtpMessage({
       type: 'info',
-      text: `Dispatching 6-digit verification code to ${email}...`,
+      text: `Dispatching verification code to ${email}...`,
     });
 
     try {
@@ -128,8 +128,20 @@ export default function RegistrationForm() {
         url.searchParams.append('name', formData.name.trim());
       }
 
-      const response = await fetch(url.toString(), { method: 'GET' });
-      const data = await response.json();
+      const response = await fetch(url.toString());
+      const text = await response.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (e) {
+        if (text.includes('doGet')) {
+          setOtpMessage({
+            type: 'error',
+            text: 'Apps Script not updated: Please Deploy as "New version" in script.google.com',
+          });
+          return;
+        }
+      }
 
       if (data && data.status === 'success') {
         setOtpMessage({
@@ -143,11 +155,10 @@ export default function RegistrationForm() {
         });
       }
     } catch (err: any) {
-      console.warn('Network notice on send OTP:', err);
-      // Since Google Apps Script triggers the email before redirect, inform the user
+      console.warn('Send OTP network notice:', err);
       setOtpMessage({
         type: 'success',
-        text: `Verification code dispatched to ${email}. Check your Inbox and Spam folder.`,
+        text: `Verification code sent to ${email}! Check your Inbox and Spam folder.`,
       });
     } finally {
       setIsSendingOtp(false);
@@ -174,8 +185,20 @@ export default function RegistrationForm() {
       url.searchParams.append('email', formData.email.trim());
       url.searchParams.append('otp', cleanOtp);
 
-      const response = await fetch(url.toString(), { method: 'GET' });
-      const data = await response.json();
+      const response = await fetch(url.toString());
+      const text = await response.text();
+      let data: any = {};
+      try {
+        data = JSON.parse(text);
+      } catch (parseErr) {
+        if (text.includes('doGet')) {
+          setOtpMessage({
+            type: 'error',
+            text: 'Apps Script deployment needs update: Deploy as "New version" in script.google.com',
+          });
+          return;
+        }
+      }
 
       if (data && data.status === 'success') {
         setIsEmailVerified(true);
@@ -193,7 +216,7 @@ export default function RegistrationForm() {
       console.error('Error verifying OTP:', err);
       setOtpMessage({
         type: 'error',
-        text: 'Failed to verify OTP. Please try again or resend a new code.',
+        text: 'Connection error while verifying OTP. Please try again.',
       });
     } finally {
       setIsVerifyingOtp(false);
@@ -302,7 +325,6 @@ export default function RegistrationForm() {
       mimeType: fileData?.type || '',
     };
 
-    // Staged progress indicators
     const t1 = setTimeout(() => setLoadingStage('Generating your official Prithvi 2026 ID card...'), 2500);
     const t2 = setTimeout(() => setLoadingStage('Sending confirmation pass to your email...'), 5500);
 
@@ -378,7 +400,7 @@ export default function RegistrationForm() {
           </p>
           <button
             onClick={() => window.location.reload()}
-            className="mt-8 px-8 py-3 bg-gradient-to-r from-sdg-green to-sdg-yellow text-white font-bold rounded-full hover:shadow-lg hover:shadow-sdg-green/30 transition-all active:scale-95"
+            className="mt-8 px-8 py-3 bg-gradient-to-r from-sdg-green to-sdg-yellow text-white font-bold rounded-full hover:shadow-lg hover:shadow-sdg-green/30 transition-all active:scale-95 cursor-pointer"
           >
             Register Another Participant
           </button>
@@ -621,14 +643,14 @@ export default function RegistrationForm() {
                     <button
                       type="button"
                       onClick={handleCapture}
-                      className="flex-1 bg-sdg-green text-white py-2.5 rounded-xl text-xs font-bold hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-200"
+                      className="flex-1 bg-sdg-green text-white py-2.5 rounded-xl text-xs font-bold hover:bg-green-700 transition-all active:scale-95 shadow-lg shadow-green-200 cursor-pointer"
                     >
                       Capture Photo
                     </button>
                     <button
                       type="button"
                       onClick={stopCamera}
-                      className="px-5 bg-white border-2 border-gray-200 text-gray-600 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all"
+                      className="px-5 bg-white border-2 border-gray-200 text-gray-600 py-2.5 rounded-xl text-xs font-bold hover:bg-gray-50 transition-all cursor-pointer"
                     >
                       Cancel
                     </button>
@@ -653,7 +675,7 @@ export default function RegistrationForm() {
                             setPreview(null);
                             setFileData(null);
                           }}
-                          className="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-wider block"
+                          className="text-xs font-bold text-red-500 hover:text-red-600 uppercase tracking-wider block cursor-pointer"
                         >
                           Remove Photo
                         </button>
