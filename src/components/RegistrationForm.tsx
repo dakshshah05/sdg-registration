@@ -101,51 +101,7 @@ export default function RegistrationForm() {
   };
 
   // --------------------------------------------------
-  // BACKEND API CALL HELPER
-  // --------------------------------------------------
-  const sendRequestToAppsScript = async (action: string, payload: Record<string, any>) => {
-    const bodyData = {
-      token: SECRET_TOKEN,
-      action: action,
-      ...payload,
-    };
-
-    try {
-      // Primary attempt: POST with text/plain (avoids CORS preflight)
-      const response = await fetch(APP_SCRIPT_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'text/plain;charset=utf-8',
-        },
-        body: JSON.stringify(bodyData),
-      });
-
-      if (response.ok) {
-        const json = await response.json();
-        return json;
-      }
-      throw new Error(`HTTP error ${response.status}`);
-    } catch (postErr) {
-      console.warn('POST failed, attempting GET fallback for action:', action, postErr);
-
-      // Fallback for OTP actions: GET request with query params
-      if (action === 'send_otp' || action === 'verify_otp') {
-        const url = new URL(APP_SCRIPT_URL);
-        url.searchParams.append('token', SECRET_TOKEN);
-        url.searchParams.append('action', action);
-        url.searchParams.append('email', payload.email || '');
-        if (payload.otp) url.searchParams.append('otp', payload.otp);
-        if (payload.name) url.searchParams.append('name', payload.name);
-
-        const getRes = await fetch(url.toString());
-        return await getRes.json();
-      }
-      throw postErr;
-    }
-  };
-
-  // --------------------------------------------------
-  // OTP ACTIONS
+  // OTP ACTIONS (Via Google Apps Script GET API)
   // --------------------------------------------------
   const handleSendOtp = async () => {
     const email = formData.email.trim();
@@ -158,29 +114,35 @@ export default function RegistrationForm() {
     setOtpMessage(null);
 
     try {
-      const res = await sendRequestToAppsScript('send_otp', {
-        email: email,
-        name: formData.name.trim(),
-      });
+      const url = new URL(APP_SCRIPT_URL);
+      url.searchParams.append('token', SECRET_TOKEN);
+      url.searchParams.append('action', 'send_otp');
+      url.searchParams.append('email', email);
+      if (formData.name.trim()) {
+        url.searchParams.append('name', formData.name.trim());
+      }
 
-      if (res && res.status === 'success') {
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (data && data.status === 'success') {
         setIsOtpSent(true);
         setResendCooldown(60); // 60s cooldown
         setOtpMessage({
           type: 'success',
-          text: `Verification code sent to ${email}. Check your Inbox/Spam folder.`,
+          text: `Verification code sent to ${email}. Please check your Inbox and Spam folder.`,
         });
       } else {
         setOtpMessage({
           type: 'error',
-          text: res?.message || 'Failed to send OTP. Please try again.',
+          text: data?.message || 'Failed to send verification code. Please make sure Google Apps Script is deployed as a New Version.',
         });
       }
     } catch (err: any) {
       console.error('Error sending OTP:', err);
       setOtpMessage({
         type: 'error',
-        text: 'Network error sending OTP. Please check your connection and retry.',
+        text: 'Could not connect to Apps Script. Please verify your script deployment settings.',
       });
     } finally {
       setIsSendingOtp(false);
@@ -198,12 +160,16 @@ export default function RegistrationForm() {
     setOtpMessage(null);
 
     try {
-      const res = await sendRequestToAppsScript('verify_otp', {
-        email: formData.email.trim(),
-        otp: cleanOtp,
-      });
+      const url = new URL(APP_SCRIPT_URL);
+      url.searchParams.append('token', SECRET_TOKEN);
+      url.searchParams.append('action', 'verify_otp');
+      url.searchParams.append('email', formData.email.trim());
+      url.searchParams.append('otp', cleanOtp);
 
-      if (res && res.status === 'success') {
+      const response = await fetch(url.toString());
+      const data = await response.json();
+
+      if (data && data.status === 'success') {
         setIsEmailVerified(true);
         setOtpMessage({
           type: 'success',
@@ -212,14 +178,14 @@ export default function RegistrationForm() {
       } else {
         setOtpMessage({
           type: 'error',
-          text: res?.message || 'Invalid or expired OTP. Please try again.',
+          text: data?.message || 'Invalid or expired OTP. Please check and try again.',
         });
       }
     } catch (err: any) {
       console.error('Error verifying OTP:', err);
       setOtpMessage({
         type: 'error',
-        text: 'Network error verifying OTP. Please try again.',
+        text: 'Error verifying code. Please try again.',
       });
     } finally {
       setIsVerifyingOtp(false);
@@ -328,8 +294,15 @@ export default function RegistrationForm() {
     };
 
     try {
-      // Submit registration
-      await sendRequestToAppsScript('register', payload);
+      // POST with mode no-cors or text/plain to submit registration data
+      await fetch(APP_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: {
+          'Content-Type': 'text/plain',
+        },
+        body: JSON.stringify(payload),
+      });
 
       setSuccess(true);
       if (formRef.current) {
@@ -340,8 +313,8 @@ export default function RegistrationForm() {
         });
       }
     } catch (error) {
-      console.warn('Submission fallback triggered:', error);
-      // Even with no-cors or fallback, we can treat standard complete response
+      console.error('Registration submission error:', error);
+      // Fallback
       setSuccess(true);
     } finally {
       setLoading(false);
@@ -452,7 +425,7 @@ export default function RegistrationForm() {
               {isEmailVerified && (
                 <span className="inline-flex items-center text-[11px] font-bold text-green-700 bg-green-100 px-2 py-0.5 rounded-full border border-green-200 animate-fade-in">
                   <svg className="w-3.5 h-3.5 mr-1 text-green-600" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                    <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                   </svg>
                   Verified
                 </span>
@@ -485,7 +458,7 @@ export default function RegistrationForm() {
                     setOtp('');
                     setOtpMessage(null);
                   }}
-                  className="absolute right-2 px-2.5 py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg shadow-xs transition-all"
+                  className="absolute right-2 px-2.5 py-1 text-[11px] font-semibold text-gray-600 bg-white hover:bg-gray-100 border border-gray-300 rounded-lg shadow-xs transition-all cursor-pointer"
                 >
                   Change
                 </button>
@@ -537,8 +510,8 @@ export default function RegistrationForm() {
                         setOtpMessage(null);
                       }
                     }}
-                    placeholder="• • • • • •"
-                    className="flex-1 tracking-[0.4em] text-center font-mono font-bold text-lg px-3 py-2.5 bg-white border-2 border-sdg-green/40 rounded-xl focus:border-sdg-green focus:ring-2 focus:ring-sdg-green/20 outline-none text-gray-800"
+                    placeholder="Enter 6 digits"
+                    className="flex-1 text-center font-mono font-bold text-base tracking-widest px-3 py-2.5 bg-white border-2 border-sdg-green/40 rounded-xl focus:border-sdg-green focus:ring-2 focus:ring-sdg-green/20 outline-none text-gray-800 placeholder:tracking-normal placeholder:font-sans placeholder:font-normal placeholder:text-gray-400 placeholder:text-xs"
                   />
                   <button
                     type="button"
